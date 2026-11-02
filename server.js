@@ -8,7 +8,7 @@ const cheerio = require("cheerio");
 // En tu PC usará los valores por defecto. En Render leerá las variables de su panel.
 const FTP_USER = process.env.FTP_USER || "admin"; 
 const FTP_PASS = process.env.FTP_PASS || "31cd618bb2"; 
-const FTP_HOST = process.env.FTP_HOST || "192.168.1.220"; 
+const FTP_HOST = process.env.FTP_HOST || "192.168.0.1"; 
 const FTP_PORT = parseInt(process.env.FTP_PORT || "21"); 
 const FTP_FOLDER = process.env.FTP_FOLDER || "/"; 
 
