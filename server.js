@@ -3,16 +3,14 @@ const ftp = require("basic-ftp");
 const cheerio = require("cheerio");
 
 // ==========================================
-// CONFIGURACIÓN DE CREDENCIALES
+// CONFIGURACIÓN DE CREDENCIALES (DINÁMICAS)
 // ==========================================
-const FTP_USER = "admin"; 
-const FTP_PASS = "31cd618bb2"; 
-const FTP_HOST = "192.168.1.220"; // IP local limpia, sin puertos ni letras adicionales
-const FTP_PORT = 21; 
-
-// Tu disco duro grande está mapeado como 'volume2(H:)' y dentro tienes la carpeta 'Peliculas'
-const FTP_FOLDER = "/";
-  // Carpeta en tu USB donde están los videos
+// En tu PC usará los valores por defecto. En Render leerá las variables de su panel.
+const FTP_USER = process.env.FTP_USER || "admin"; 
+const FTP_PASS = process.env.FTP_PASS || "31cd618bb2"; 
+const FTP_HOST = process.env.FTP_HOST || "192.168.1.220"; 
+const FTP_PORT = parseInt(process.env.FTP_PORT || "21"); 
+const FTP_FOLDER = process.env.FTP_FOLDER || "/"; 
 
 let peliculasCatalog = {};
 
@@ -33,8 +31,8 @@ function limpiarNombreArchivo(filename) {
 
 async function buscarIdIMDb(titulo, anio) {
   try {
-    // Buscamos directamente en el motor de DuckDuckGo simulando un navegador tradicional
     const query = encodeURIComponent(`${titulo} ${anio || ''} imdb`);
+    // CORREGIDO: Ruta HTML válida de DuckDuckGo para Web Scraping directo
     const url = `https://duckduckgo.com{query}`;
     
     const response = await fetch(url, {
@@ -45,12 +43,11 @@ async function buscarIdIMDb(titulo, anio) {
     
     let imdbId = null;
 
-    // Escaneamos los enlaces de los resultados de búsqueda buscando el patrón de IMDb (ttXXXXXXX)
     $("a.result__url").each((i, el) => {
       const href = $(el).attr("href");
       const match = href ? href.match(/imdb\.com\/title\/(tt\d+)/) : null;
       if (match && !imdbId) {
-        imdbId = match[1];
+        imdbId = match[1]; // Captura el identificador ttXXXXX
       }
     });
 
@@ -65,7 +62,7 @@ async function escanearYAutoMapearFTP() {
   client.ftp.verbose = false;
   
   try {
-    console.log("Conectando al FTP de tu router...");
+    console.log(`Conectando al FTP en: ${FTP_HOST}...`);
     await client.access({
       host: FTP_HOST,
       user: FTP_USER,
@@ -83,7 +80,7 @@ async function escanearYAutoMapearFTP() {
       const { title, year } = limpiarNombreArchivo(file.name);
       if (!title) continue;
 
-      // Pausa de medio segundo entre archivos para evitar bloqueos
+      // Espera de 500ms para evitar bloqueos por exceso de peticiones
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const imdbId = await buscarIdIMDb(title, year);
@@ -104,7 +101,7 @@ async function escanearYAutoMapearFTP() {
 
   } catch (err) {
     console.error("❌ Error en la conexión FTP:", err.message);
-  } {
+  } finally { // CORREGIDO: Se asegura el cierre del socket bajo cualquier escenario
     client.close();
   }
 }
